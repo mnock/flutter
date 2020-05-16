@@ -1,11 +1,13 @@
-// Copyright 2014 The Flutter Authors. All rights reserved.
+// Copyright 2019 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 import 'package:meta/meta.dart';
 
+import 'base/config.dart';
 import 'base/context.dart';
-import 'globals.dart' as globals;
+import 'base/platform.dart';
+import 'version.dart';
 
 /// The current [FeatureFlags] implementation.
 ///
@@ -37,24 +39,27 @@ class FeatureFlags {
   /// Whether the Android embedding V2 is enabled.
   bool get isAndroidEmbeddingV2Enabled => isEnabled(flutterAndroidEmbeddingV2Feature);
 
+  /// Whether the web incremental compiler is enabled.
+  bool get isWebIncrementalCompilerEnabled => isEnabled(flutterWebIncrementalCompiler);
+
   /// Whether a particular feature is enabled for the current channel.
   ///
   /// Prefer using one of the specific getters above instead of this API.
   bool isEnabled(Feature feature) {
-    final String currentChannel = globals.flutterVersion.channel;
+    final String currentChannel = FlutterVersion.instance.channel;
     final FeatureChannelSetting featureSetting = feature.getSettingForChannel(currentChannel);
     if (!featureSetting.available) {
       return false;
     }
     bool isEnabled = featureSetting.enabledByDefault;
     if (feature.configSetting != null) {
-      final bool configOverride = globals.config.getValue(feature.configSetting) as bool;
+      final bool configOverride = Config.instance.getValue(feature.configSetting) as bool;
       if (configOverride != null) {
         isEnabled = configOverride;
       }
     }
     if (feature.environmentOverride != null) {
-      if (globals.platform.environment[feature.environmentOverride]?.toLowerCase() == 'true') {
+      if (platform.environment[feature.environmentOverride]?.toLowerCase() == 'true') {
         isEnabled = true;
       }
     }
@@ -68,7 +73,9 @@ const List<Feature> allFeatures = <Feature>[
   flutterLinuxDesktopFeature,
   flutterMacOSDesktopFeature,
   flutterWindowsDesktopFeature,
+  flutterBuildPluginAsAarFeature,
   flutterAndroidEmbeddingV2Feature,
+  flutterWebIncrementalCompiler,
 ];
 
 /// The [Feature] for flutter web.
@@ -84,10 +91,6 @@ const Feature flutterWebFeature = Feature(
     available: true,
     enabledByDefault: false,
   ),
-  beta: FeatureChannelSetting(
-    available: true,
-    enabledByDefault: false,
-  ),
 );
 
 /// The [Feature] for macOS desktop.
@@ -96,10 +99,6 @@ const Feature flutterMacOSDesktopFeature = Feature(
   configSetting: 'enable-macos-desktop',
   environmentOverride: 'FLUTTER_MACOS',
   master: FeatureChannelSetting(
-    available: true,
-    enabledByDefault: false,
-  ),
-  dev: FeatureChannelSetting(
     available: true,
     enabledByDefault: false,
   ),
@@ -127,6 +126,16 @@ const Feature flutterWindowsDesktopFeature = Feature(
   ),
 );
 
+/// The [Feature] for building plugins as AARs in an app project.
+const Feature flutterBuildPluginAsAarFeature = Feature(
+  name: 'Build plugins independently as AARs in app projects',
+  configSetting: 'enable-build-plugin-as-aar',
+  master: FeatureChannelSetting(
+    available: true,
+    enabledByDefault: false,
+  ),
+);
+
 /// The [Feature] for generating projects using the new Android embedding.
 const Feature flutterAndroidEmbeddingV2Feature = Feature(
   name: 'flutter create generates projects using the Android embedding V2',
@@ -147,6 +156,21 @@ const Feature flutterAndroidEmbeddingV2Feature = Feature(
   stable: FeatureChannelSetting(
     available: true,
     enabledByDefault: true,
+  ),
+);
+
+/// The [Feature] for using the incremental compiler instead of build runner.
+const Feature flutterWebIncrementalCompiler = Feature(
+  name: 'Enable the incremental compiler for web builds',
+  configSetting: 'enable-web-incremental-compiler',
+  environmentOverride: 'WEB_INCREMENTAL_COMPILER',
+  master: FeatureChannelSetting(
+    available: true,
+    enabledByDefault: false,
+  ),
+  dev: FeatureChannelSetting(
+    available: true,
+    enabledByDefault: false,
   ),
 );
 
